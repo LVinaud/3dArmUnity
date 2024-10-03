@@ -1,6 +1,5 @@
-﻿using System.Collections;
+﻿﻿using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 
 public class Evolution : MonoBehaviour
@@ -8,24 +7,23 @@ public class Evolution : MonoBehaviour
     public GameObject robot;
     public GameObject goal;
     public GameObject testCube;
-    //private GameObject testing;
+
     private GameObject armEnd;
     private List<float> robotState = new List<float>();
-    private List<List<float> > popStates = new List<List<float> >();
+    private List<List<float>> popStates = new List<List<float>>();
     private bool robotCreated = false;
 
-    //---------- Evolution parameters ----------// 
+    // Evolution parameters
     private int N = 0;
     public int popSize;
     public float maxStep;
-    public bool colliding=false;
 
-    //---------- Forward Kinematics ----------//
-    private float distGround = 0.2f;
-    private float distJoints = 0.4f;
+    // List of arm parts from CreateScene
+    private List<GameObject> armParts;
 
     void Awake(){
         N = GetComponent<CreateScene>().N;
+        armParts = GetComponent<CreateScene>().armParts;
     }
 
     void Start(){
@@ -36,45 +34,32 @@ public class Evolution : MonoBehaviour
         for(int i=0; i<popSize; i++){
             popStates.Add(new List<float>());
             for (int j= 0; j < N; j++){
-                float angle = Random.Range(-maxStep + robotState[i], maxStep + robotState[i]);//the random range was only limited by the maxstep and i wwanted it to not be limited at all
+                float angle = Random.Range(-maxStep + robotState[j], maxStep + robotState[j]);
                 popStates[i].Add(angle);
             }
         }
     }
 
-    // Update is called once per frame
     void Update(){
         if(!robotCreated && robot.transform.childCount != 0){
-            robotCreated=true;
-            Debug.Log("created");
+            robotCreated = true;
+            Debug.Log("Robot created");
 
-            GameObject lastPiece = robot.transform.GetChild(1).gameObject;
-            for(int i=0; i<N-1; i++){
-                lastPiece = lastPiece.transform.GetChild(1).gameObject;
-            }
-            armEnd = lastPiece.transform.GetChild(1).gameObject;
+            // Access the arm end from the CreateScene script
+            armEnd = GetComponent<CreateScene>().armEndgo;
         }
 
         if(robotCreated){
             int bestInd = -1;
-            float bestFitness = 1000;// inf
+            float bestFitness = Mathf.Infinity;
 
             for (int i = 0; i < popSize; i++){
-                 GameObject lastPiece = robot.transform.GetChild(1).gameObject;
-
                 // Test individual arm position
-                for(int j=0; j<N; j++){
-                    lastPiece.transform.localRotation = Quaternion.Euler(
-                         j%3!=2?0:popStates[i][j],
-                         j%3!=0?0:-popStates[i][j],
-                         j%3!=1?0:-popStates[i][j]
-                        );
-                    lastPiece = lastPiece.transform.GetChild(1).gameObject;
-                }
-
-                if(distToGoal(i)<=bestFitness){
+                Vector3 endPosition = simulatedArm(i);
+                float fitness = Vector3.Distance(endPosition, goal.transform.position);
+                if(fitness <= bestFitness){
                     bestInd = i;
-                    bestFitness = distToGoal(i);
+                    bestFitness = fitness;
                 }
             }
 
@@ -82,37 +67,70 @@ public class Evolution : MonoBehaviour
         }
     }
 
+    Vector3 simulatedArm(int who) {
+        GameObject baseRobot = robot.transform.GetChild(0).gameObject;
+        Vector3 position = baseRobot.transform.position; // Starting from the base position
+        Quaternion rotation = Quaternion.identity; // Initialize rotation as identity
+
+        float segmentLength = 0.4f; // Should match distJoints
+
+        for (int j = 0; j < N; j++) {
+            // Determine the axis of rotation
+            Vector3 axis = Vector3.zero;
+            if (j % 3 == 0) {
+                axis = Vector3.right; // X axis
+            } else if (j % 3 == 1) {
+                axis = Vector3.up; // Y axis
+            } else {
+                axis = Vector3.forward; // Z axis
+            }
+
+            // Create rotation for this joint
+            Quaternion jointRotation = Quaternion.AngleAxis(popStates[who][j], axis);
+
+            // Accumulate rotation
+            rotation *= jointRotation;
+
+            // Update position
+            position += rotation * Vector3.up * segmentLength; // Move along local Y axis
+        }
+
+        // Return the calculated end effector position
+        return position;
+    }
+
     void newPopulation(int bestInd){
+        // Apply the best individual's joint angles to the robot
+        for(int j = 0; j < N; j++){
+            Vector3 axis = Vector3.zero;
+            if (j % 3 == 0) {
+                axis = Vector3.right; // X axis
+            } else if (j % 3 == 1) {
+                axis = Vector3.up; // Y axis
+            } else {
+                axis = Vector3.forward; // Z axis
+            }
 
-       GameObject lastPiece = robot.transform.GetChild(1).gameObject;
-        // Test individual arm position
-        for(int j=0; j<N; j++){
-            lastPiece.transform.localRotation = Quaternion.Euler(
-                    j%3!=2?0:popStates[bestInd][j],
-                    j%3!=0?0:-popStates[bestInd][j],
-                    j%3!=1?0:-popStates[bestInd][j]
-                );
-            lastPiece = lastPiece.transform.GetChild(1).gameObject;
+            Quaternion jointRotation = Quaternion.AngleAxis(popStates[bestInd][j], axis);
+
+            // Apply the rotation to the corresponding arm part
+            armParts[j].transform.localRotation = jointRotation;
         }
 
-        robotState = popStates[bestInd];//gets the robot ot act like the best one
-        
-        for(int i=0;i<N;i++){
-            popStates[0][i] = robotState[i];//copies the best one into the first index of the population
+        // Update the robot's current state
+        robotState = new List<float>(popStates[bestInd]);
+
+        // Copy the best individual into the first index of the population
+        for (int i = 0; i < N; i++){
+            popStates[0][i] = robotState[i];
         }
-        
-        for(int i=1; i<popSize; i++){
+
+        // Generate new population
+        for (int i = 1; i < popSize; i++){
             for (int j = 0; j < N; j++){
                 float angle = Random.Range(-maxStep + robotState[j], maxStep + robotState[j]);
                 popStates[i][j] = angle;
             }
         }
     }
-
-    float distToGoal(int i){
-        Vector3 robotP = armEnd.transform.position;
-        Vector3 goalP = goal.transform.position;
-        return Vector3.Distance(robotP, goalP);
-    }
-
 }

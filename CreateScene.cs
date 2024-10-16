@@ -15,9 +15,9 @@ public class CreateScene : MonoBehaviour
     public List<GameObject> armParts = new List<GameObject>();
     public GameObject armEndgo;
 
-    private float distJoints = 0.4f;
+    public float distJoints = 0.4f;
 
-    void Start(){
+    void Awake(){
         createRobotArm();
     }
 

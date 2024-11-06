@@ -1,6 +1,12 @@
 # 3dArmUnity
 This project is based on [N-AxisRoboticArmControl](https://github.com/brenocq/N-AxisRoboticArmControl/tree/master), which is licensed under the MIT License. Significant modifications have been made by Lázaro Vinaud as part of this research project.
 
+##Visualization of the project
+
+100 random obstacles were generated and a path created by the A* algorithm was used as a guide for the arm who evolves to follow the path while avoiding obstacles.
+
+[Screencast from 05-11-2024 23:20:39.webm](https://github.com/user-attachments/assets/a34ad274-609e-461a-8ef3-8524c90ded0d)
+
 # Active Goals
 
 Adding the interface to allow user creating of scenarios and configurations

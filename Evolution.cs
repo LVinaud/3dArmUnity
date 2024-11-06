@@ -35,7 +35,7 @@ public class Evolution : MonoBehaviour
     //a variable to mark what the current generation is
     private int generation = 1;
     //not used at the moment, its future use will be the speed to change between each point of the path found as the goal
-    private int generationsPerObjective = 200;
+    public int generationsPerObjective = 20;
     //how many generations will be calculated for the experiment, -1 means undefined or neverending simulation
     public int maxGenerations = -1;
     // List of arm parts from CreateScene
@@ -44,6 +44,7 @@ public class Evolution : MonoBehaviour
     private float segmentLength = 0.4f;
     //just a variable to determine if an individual is better or worse than the previous best one
     private float previousBestfitness;
+    public List<GameObject> obstaclesList = new List<GameObject>();
 
     void Awake(){
         //gets the relevant infos from the createscene and pathFinding script
@@ -82,8 +83,8 @@ public class Evolution : MonoBehaviour
         //already sets the goal as the first element of the path
         goal.transform.position = pathQueue.Dequeue().worldPosition;
         //starts the time count
-        sw.Start();
-
+        if(maxGenerations != -1)
+            sw.Start();
     }
     //the never ending loop of evaluating a population, displaying the best configuration and generating a new population based on the previous best one
     void Update(){
@@ -109,6 +110,9 @@ public class Evolution : MonoBehaviour
         generation++;
     }
 
+    public void addObstacle(GameObject a) {
+        obstaclesList.Add(a);
+    }
     void endProgram() {
         sw.Stop();
         logFile.WriteLine("Time elapsed(ms): " + sw.ElapsedMilliseconds);
@@ -126,21 +130,61 @@ public class Evolution : MonoBehaviour
     void fitnessEvaluation() {
         //the bestInd saves what is the best one in the popStates
         int bestInd = -1;
+        //the distance to obstacles is now also taken into account to determine the fitness.
         //this calculation is needed in the case of the goal moving, so that the bestFitness is recalculated, if it were a gloval variable and this wasn't done, it would save a fitness from a different goal or, in other words, another problem
-        float bestFitness = Vector3.Distance(simulatedArm(robotState), goal.transform.position);
+        float bestFitness = Mathf.Min(1/Vector3.Distance(simulatedArm(robotState), goal.transform.position), 4/GetComponent<CreateScene>().distJoints) + Mathf.Min(GetComponent<CreateScene>().distJoints, Mathf.Sqrt(distanceObstacles(robotState)));
+        //this fitness calculation takes the distance to objectivo into a max value capped when the distance is smaller than a fourth of the distJoint and tops the distance to obstacles to a max of distJoint so that it wont get any more value of getting further than a joint distance
         for (int i = 0; i < popSize; i++){
             // Test individual arm end position
             Vector3 endPosition = simulatedArm(popStates[i]);
             //calculated the fitness, or distance to the goal
-            float fitness = Vector3.Distance(endPosition, goal.transform.position);
+            float fitness = Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 4/GetComponent<CreateScene>().distJoints) + Mathf.Min(GetComponent<CreateScene>().distJoints, Mathf.Sqrt(distanceObstacles(popStates[i])));
             //checks if its better and saves its configuration
-            if(fitness <= bestFitness){
+            if(fitness > bestFitness){
                 bestInd = i;
                 bestFitness = fitness;
                 robotState = new List<float>(popStates[bestInd]);
             }
         }
         previousBestfitness = bestFitness;
+    }
+
+    float distanceObstacles(List<float> angles) {
+        if(obstaclesList.Count == 0) return 0; //a 0 value means no obstacle exists and thus it shouldn't be considered
+        GameObject baseRobot = robot.transform.GetChild(0).gameObject;
+        Vector3 position = baseRobot.transform.position;
+        //the cumulative rotation starts with the identity
+        Quaternion rotation = Quaternion.identity;
+        //the distance will be the minimum distance to an obstacle
+        float distance = Mathf.Infinity;
+        for (int j = 0; j < N; j++) {
+            // Determine the axis of rotation
+            Vector3 axis = Vector3.zero;
+            if (j % 3 == 0) {
+                axis = Vector3.right; // X axis
+            } else if (j % 3 == 1) {
+                axis = Vector3.up; // Y axis
+            } else {
+                axis = Vector3.forward; // Z axis
+            }
+            // Create rotation for this joint
+            Quaternion jointRotation = Quaternion.AngleAxis(angles[j], axis);
+            // Accumulate rotation
+            rotation *= jointRotation;
+            // Update position
+            position += rotation * Vector3.up * segmentLength; // Move along local Y axis
+            float minDistanceCurrentJoint = Mathf.Infinity;
+            for(int i = 0; i < obstaclesList.Count; i++) {
+                Collider col = obstaclesList[i].GetComponent<Collider>();
+                Vector3 closest = col.ClosestPoint(position);
+                float cdistance = Vector3.Distance(position, closest);
+                minDistanceCurrentJoint = Mathf.Min(minDistanceCurrentJoint, cdistance);//gets the closest distance to an obstacle up from this point
+            }
+            //compares to see if it is any smaller than the closest distance yet
+            distance = Mathf.Min(minDistanceCurrentJoint, distance);
+        }
+        //returns the smaller one
+        return distance;
     }
 
     void showArm() {

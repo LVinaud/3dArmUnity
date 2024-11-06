@@ -3,11 +3,15 @@ This project is based on [N-AxisRoboticArmControl](https://github.com/brenocq/N-
 
 # Active Goals
 
-Making the path finding script work more smoothly visually, as it is currently crashing.
+Adding the interface to allow user creating of scenarios and configurations
+
+Making the distance to obstacle more efficient just as the 2D by making a weighted grid.
 
 # Achieved Goals
 
 Making a process for the arm to go from a later best configuration to the current best one in a controlled way in order to avoid strange jumps in evolution, done by using the maxStep variable. ✅
+
+Making the path finding script work more smoothly visually, as it is currently crashing. ✅(the a* is not visualized anymore)
 
 Making it possible for the simulation run a limited amount of generations and saving data about it, the fitness evolution along with other aspects. ✅
 

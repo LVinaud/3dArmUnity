@@ -132,13 +132,15 @@ public class Evolution : MonoBehaviour
         int bestInd = -1;
         //the distance to obstacles is now also taken into account to determine the fitness.
         //this calculation is needed in the case of the goal moving, so that the bestFitness is recalculated, if it were a gloval variable and this wasn't done, it would save a fitness from a different goal or, in other words, another problem
-        float bestFitness = Mathf.Min(1/Vector3.Distance(simulatedArm(robotState), goal.transform.position), 4/GetComponent<CreateScene>().distJoints) + Mathf.Min(GetComponent<CreateScene>().distJoints, Mathf.Sqrt(distanceObstacles(robotState)));
+        float bestFitness = Mathf.Min(1/Vector3.Distance(simulatedArm(robotState), goal.transform.position), 10/GetComponent<CreateScene>().distJoints) - 1/Mathf.Pow(distanceObstacles(robotState), 2); //a if that doesnt require the square root to be calculated
         //this fitness calculation takes the distance to objectivo into a max value capped when the distance is smaller than a fourth of the distJoint and tops the distance to obstacles to a max of distJoint so that it wont get any more value of getting further than a joint distance
         for (int i = 0; i < popSize; i++){
             // Test individual arm end position
             Vector3 endPosition = simulatedArm(popStates[i]);
             //calculated the fitness, or distance to the goal
-            float fitness = Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 4/GetComponent<CreateScene>().distJoints) + Mathf.Min(GetComponent<CreateScene>().distJoints, Mathf.Sqrt(distanceObstacles(popStates[i])));
+            float fitness = Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 10/GetComponent<CreateScene>().distJoints) - 1/Mathf.Pow(distanceObstacles(popStates[i]), 2);
+            print(Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 10/GetComponent<CreateScene>().distJoints));
+            print(1/Mathf.Pow(distanceObstacles(popStates[i]), 2));
             //checks if its better and saves its configuration
             if(fitness > bestFitness){
                 bestInd = i;
@@ -157,7 +159,7 @@ public class Evolution : MonoBehaviour
         Quaternion rotation = Quaternion.identity;
         //the distance will be the minimum distance to an obstacle
         float distance = Mathf.Infinity;
-        for (int j = 0; j < N; j++) {
+        for (int j = 0; j < N-1; j++) {
             // Determine the axis of rotation
             Vector3 axis = Vector3.zero;
             if (j % 3 == 0) {

@@ -122,6 +122,7 @@ public class Evolution : MonoBehaviour
         logFile.WriteLine("MaxStep: " + maxStep);
         logFile.WriteLine("Generations per objective: " + generationsPerObjective);
         logFile.WriteLine("Segment lenght: " + segmentLength);
+        logFile.WriteLine("Minimum obstacle distance: " + distanceObstacles(robotState));
         logFile.Close();
         logFile.Dispose();
         this.enabled = false;
@@ -132,15 +133,30 @@ public class Evolution : MonoBehaviour
         int bestInd = -1;
         //the distance to obstacles is now also taken into account to determine the fitness.
         //this calculation is needed in the case of the goal moving, so that the bestFitness is recalculated, if it were a gloval variable and this wasn't done, it would save a fitness from a different goal or, in other words, another problem
-        float bestFitness = Mathf.Min(1/Vector3.Distance(simulatedArm(robotState), goal.transform.position), 10/GetComponent<CreateScene>().distJoints) - 1/Mathf.Pow(distanceObstacles(robotState), 2); //a if that doesnt require the square root to be calculated
+        float distAux = distanceObstacles(robotState);//calculated only once, as this is the most CPU expensive element of the calculation
+        float bestFitness;
+        bool considerObstacles = false;
+        if(distAux < segmentLength) {
+            bestFitness = 1/Vector3.Distance(simulatedArm(robotState), goal.transform.position) - 1/Mathf.Pow(distAux, 3) - 1/distanceObstaclesFromPoint(simulatedArm(robotState)); //simplified the calculation and have unlimited both parts of the fitness calculation
+            considerObstacles = true;
+        }
+        else
+            bestFitness = 1/Vector3.Distance(simulatedArm(robotState), goal.transform.position);
         //this fitness calculation takes the distance to objectivo into a max value capped when the distance is smaller than a fourth of the distJoint and tops the distance to obstacles to a max of distJoint so that it wont get any more value of getting further than a joint distance
         for (int i = 0; i < popSize; i++){
             // Test individual arm end position
             Vector3 endPosition = simulatedArm(popStates[i]);
             //calculated the fitness, or distance to the goal
-            float fitness = Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 10/GetComponent<CreateScene>().distJoints) - 1/Mathf.Pow(distanceObstacles(popStates[i]), 2);
-            print(Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 10/GetComponent<CreateScene>().distJoints));
-            print(1/Mathf.Pow(distanceObstacles(popStates[i]), 2));
+            float fitness;
+            //calculated only once, as this is the most CPU expensive element of the calculation 
+            if(considerObstacles){
+                float distAux2 = distanceObstacles(popStates[i]);
+                fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position) - 1/Mathf.Pow(distAux2, 3) - 1/distanceObstaclesFromPoint(simulatedArm(popStates[i])); // also considering the tip of the arm, but in a lower cost
+                print("b: " + 1/Mathf.Pow(distAux2, 3));
+            }
+            else
+                fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position);
+            print("a: " + 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position));
             //checks if its better and saves its configuration
             if(fitness > bestFitness){
                 bestInd = i;
@@ -149,6 +165,17 @@ public class Evolution : MonoBehaviour
             }
         }
         previousBestfitness = bestFitness;
+    }
+
+    float distanceObstaclesFromPoint(Vector3 point) {
+        float minDistanceCurrentJoint = Mathf.Infinity;
+        for(int i = 0; i < obstaclesList.Count; i++) {
+            Collider col = obstaclesList[i].GetComponent<Collider>();
+            Vector3 closest = col.ClosestPoint(point);
+            float cdistance = Vector3.Distance(point, closest);
+            minDistanceCurrentJoint = Mathf.Min(minDistanceCurrentJoint, cdistance);//gets the closest distance to an obstacle up from this point
+        }
+        return minDistanceCurrentJoint;
     }
 
     float distanceObstacles(List<float> angles) {
@@ -175,13 +202,7 @@ public class Evolution : MonoBehaviour
             rotation *= jointRotation;
             // Update position
             position += rotation * Vector3.up * segmentLength; // Move along local Y axis
-            float minDistanceCurrentJoint = Mathf.Infinity;
-            for(int i = 0; i < obstaclesList.Count; i++) {
-                Collider col = obstaclesList[i].GetComponent<Collider>();
-                Vector3 closest = col.ClosestPoint(position);
-                float cdistance = Vector3.Distance(position, closest);
-                minDistanceCurrentJoint = Mathf.Min(minDistanceCurrentJoint, cdistance);//gets the closest distance to an obstacle up from this point
-            }
+            float minDistanceCurrentJoint = distanceObstaclesFromPoint(position);
             //compares to see if it is any smaller than the closest distance yet
             distance = Mathf.Min(minDistanceCurrentJoint, distance);
         }

@@ -6,39 +6,35 @@ using UnityEngine;
 
 public class Gridi : MonoBehaviour
 {
-    private CreateScene create; //after the grid has being created, the robot and obstacles will be generated
     public LayerMask unwalkableMask;    //layer designated for obstacles
-    public Vector3 gridWorldSize;   
     public float nodeRadius;
     Node[,,] grid;
+    public int layers = 5; //how many layers of distance to consider when looking at obstacles, it means that if the layers is set to 3, there will be a 3 node distance from obstacles until it is not anymore calculated
 
     public List<Node> path;
-
-    float nodeDiameter;
+    private Vector3 gridWorldSize;
+    public float nodeDiameter;
     private int gridSizeX, gridSizeY, gridSizeZ;
 
-    private void Start()    //takes the values ​​set in unity and passes the values ​​to private variables
+    private void Awake()    //takes the values ​​set in unity and passes the values ​​to private variables
 
     {
-        create = GetComponent<CreateScene>();
+        gridWorldSize = GetComponent<CreateScene>().worldSize;
         nodeDiameter = nodeRadius * 2;
         gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
         gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
         gridSizeZ = Mathf.RoundToInt(gridWorldSize.z / nodeDiameter);
-
-        createGrid();
-        create.activate();//activates the CreateScene script, so that it can use the right parameters for world and grid sizes
     }
 
-    void createGrid()   //creation of the array that stores each cube of the collision
+    public void createGrid()   //creation of the array that stores each cube of the collision
 
     {
+        print("debug");
         grid = new Node[gridSizeX, gridSizeY, gridSizeZ];
-
+        
         // worldBottomLeft is in one of the corners of the grid
         // and will be the reference to get the position of objects within the grid
         Vector3 worldBottomLeft = transform.position - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.z / 2 - Vector3.up * gridWorldSize.y / 2;
-
         for (int x = 0; x < gridSizeX; x++)
         {
             for (int y = 0; y < gridSizeY; y++)
@@ -47,11 +43,31 @@ public class Gridi : MonoBehaviour
                 {
                     Vector3 worldPoint = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (z * nodeDiameter + nodeRadius) + Vector3.up * (y * nodeDiameter + nodeRadius);
                     bool walkable = !(Physics.CheckSphere(worldPoint, nodeRadius, unwalkableMask));
-                    grid[x, y, z] = new Node(walkable, worldPoint, x, y, z);
+                    grid[x, y, z] = new Node(walkable, worldPoint, x, y, z, layers);
                 }
             }
         }
-        
+
+        // with the grid created, I will now add the layers 
+        for(int i = layers; i > 0; i--) {
+            for (int x = 0; x < gridSizeX; x++)
+            {
+                for (int y = 0; y < gridSizeY; y++)
+                {
+                    for (int z = 0; z < gridSizeZ; z++) 
+                    {
+                        if((grid[x, y, z]).layer == i + 1) {//it means it is an obstacle or the previous layer and the neighbours need to be considered
+                            List <Node> nrs = GetNeighbours(grid[x, y, z]);
+                            foreach(Node element in nrs) {
+                                if(element.layer == 0) {
+                                    element.layer = i;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public List<Node> GetNeighbours(Node node)

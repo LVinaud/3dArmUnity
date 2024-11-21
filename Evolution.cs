@@ -124,8 +124,10 @@ public class Evolution : MonoBehaviour
     void checkObstacles() {//checks if an obstacle has moved
         foreach(GameObject obstacle in obstaclesList) {
             if (obstacle.transform.hasChanged == true) {
-                gridScript.createGrid();
-                obstacle.transform.hasChanged = false;
+                if(obstacle.GetComponent<CheckMovement>().isMoving == false) {
+                    gridScript.createGrid();
+                    obstacle.transform.hasChanged = false;
+                }
             }
         }
     }

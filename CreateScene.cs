@@ -78,6 +78,7 @@ public class CreateScene : MonoBehaviour
         for(int i = 0; i < n; i++) {
             GameObject newObstacle = Instantiate(obstaclePrefab, new Vector3(Random.Range(-sizeX, sizeX), Random.Range(0, sizeY), Random.Range(-sizeZ, sizeZ)), Quaternion.identity);
             newObstacle.layer = 3;
+            newObstacle.AddComponent<CheckMovement>();
             EvScript.addObstacle(newObstacle);
         }
     }

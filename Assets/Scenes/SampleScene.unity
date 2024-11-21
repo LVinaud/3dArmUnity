@@ -440,6 +440,7 @@ GameObject:
   - component: {fileID: 534669905}
   - component: {fileID: 534669904}
   - component: {fileID: 534669903}
+  - component: {fileID: 534669906}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -521,6 +522,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 40.651, y: 0, z: 0}
+--- !u!114 &534669906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 534669902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3282ce395fb8f4ba8a10fb8d7f9afd15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 5
+  rotationSpeed: 100
+  cameraTransform: {fileID: 534669905}
 --- !u!1 &711350395
 GameObject:
   m_ObjectHideFlags: 0
@@ -726,14 +742,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   robotBase: {fileID: 838007832}
+  worldSize: {x: 4, y: 4, z: 4}
   obstaclePrefab: {fileID: 150004584}
   armPart: {fileID: 4355317378720011621, guid: 785a523d9e854503cac5852e290b825c, type: 3}
-  armEnd: {fileID: 6569148742488170615, guid: 4af3744677860b26590f206116bf8c27, type: 3}
   joint: {fileID: 2808238317853149766, guid: a3dd3f5f1c74dd34eb7421e6963a16bd, type: 3}
   N: 9
   armParts: []
-  armEndgo: {fileID: 6569148742488170615, guid: 4af3744677860b26590f206116bf8c27,
-    type: 3}
+  armEnd: {fileID: 6569148742488170615, guid: 4af3744677860b26590f206116bf8c27, type: 3}
   distJoints: 0.4
   numObstacles: 20
 --- !u!114 &1082612865
@@ -751,8 +766,9 @@ MonoBehaviour:
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 8
-  gridWorldSize: {x: 3, y: 3, z: 3}
   nodeRadius: 0.01
+  layers: 10
+  nodeDiameter: 0
 --- !u!114 &1082612866
 MonoBehaviour:
   m_ObjectHideFlags: 0

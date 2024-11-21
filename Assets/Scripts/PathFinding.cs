@@ -59,7 +59,7 @@ public class PathFinding : MonoBehaviour
         {
             // this loop searches for the best term within openSet to be explored
             Node currentNode = openSet[0];
-            for(int i =1; i <openSet.Count; i++)
+            for(int i = 1; i <openSet.Count; i++)
             {
                 if (openSet[i].fCost < currentNode.fCost || openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost)
                 {

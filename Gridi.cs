@@ -29,7 +29,6 @@ public class Gridi : MonoBehaviour
     public void createGrid()   //creation of the array that stores each cube of the collision
 
     {
-        print("debug");
         grid = new Node[gridSizeX, gridSizeY, gridSizeZ];
         
         // worldBottomLeft is in one of the corners of the grid

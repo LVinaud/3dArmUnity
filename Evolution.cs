@@ -7,6 +7,7 @@ public class Evolution : MonoBehaviour
 {   
     //the pathFinding script
     private PathFinding astarScript;
+    public bool variableMut = false;
     //the grid script
     private Gridi gridScript;
     //the mutation rate
@@ -124,13 +125,12 @@ public class Evolution : MonoBehaviour
     void checkObstacles() {//checks if an obstacle has moved
         foreach(GameObject obstacle in obstaclesList) {
             if (obstacle.transform.hasChanged == true) {
-                if(obstacle.GetComponent<CheckMovement>().isMoving == false) {
-                    gridScript.createGrid();
-                    obstacle.transform.hasChanged = false;
-                }
+                gridScript.recreateGrid(obstacle.GetComponent<CheckMovement>().lastInstance, obstacle.transform.position);
+                obstacle.GetComponent<CheckMovement>().lastInstance = obstacle.transform.position;
+                obstacle.transform.hasChanged = false;
             }
         }
-    }
+    }//this should not be on evolution, i could create a new class to check for movement
 
     void endProgram() {
         sw.Stop();
@@ -153,29 +153,20 @@ public class Evolution : MonoBehaviour
         //the distance to obstacles is now also taken into account to determine the fitness.
         //this calculation is needed in the case of the goal moving, so that the bestFitness is recalculated, if it were a gloval variable and this wasn't done, it would save a fitness from a different goal or, in other words, another problem
         float distAux = distanceObstacles(robotState);//calculated only once, as this is the most CPU expensive element of the calculation
+        print(distAux);
         float bestFitness;
-        bool considerObstacles = false;
-        if(distAux < segmentLength) {
-            bestFitness = 1/Vector3.Distance(simulatedArm(robotState), goal.transform.position) - distAux - distanceObstaclesFromPoint(simulatedArm(robotState))/10; //simplified the calculation and have unlimited both parts of the fitness calculation
-            considerObstacles = true;
-        }
-        else
-            bestFitness = 1/Vector3.Distance(simulatedArm(robotState), goal.transform.position);
+
+        bestFitness = 1/Vector3.Distance(simulatedArm(robotState), goal.transform.position) - 1/Mathf.Pow(distAux, 3) - 1/distanceObstaclesFromPoint(simulatedArm(robotState)); //simplified the calculation and have unlimited both parts of the fitness calculation
         //this fitness calculation takes the distance to objectivo into a max value capped when the distance is smaller than a fourth of the distJoint and tops the distance to obstacles to a max of distJoint so that it wont get any more value of getting further than a joint distance
         for (int i = 0; i < popSize; i++){
             // Test individual arm end position
             Vector3 endPosition = simulatedArm(popStates[i]);
             //calculated the fitness, or distance to the goal
-            float fitness;
             //calculated only once, as this is the most CPU expensive element of the calculation 
-            if(considerObstacles){
-                float distAux2 = distanceObstacles(popStates[i]);
-                
-                fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position) - distAux2 - distanceObstaclesFromPoint(simulatedArm(popStates[i]))/10; // also considering the tip of the arm, but in a lower cost
-            }
-            else
-                fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position);
-            //checks if its better and saves its configuration
+
+            float distAux2 = distanceObstacles(popStates[i]);
+            float fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position) - 1/Mathf.Pow(distAux2, 3) - distanceObstaclesFromPoint(simulatedArm(popStates[i]))/10; // also considering the tip of the arm, but in a lower cost
+        
             if(fitness > bestFitness){
                 bestInd = i;
                 bestFitness = fitness;
@@ -187,7 +178,7 @@ public class Evolution : MonoBehaviour
 
     float distanceObstaclesFromPoint(Vector3 point) {
         Node place = gridScript.NodeFromWorldPoint(point);
-        return place.layer * gridScript.nodeDiameter * segmentLength;
+        return place.layer * gridScript.nodeDiameter;
     }
 
     float distanceObstacles(List<float> angles) {
@@ -197,7 +188,7 @@ public class Evolution : MonoBehaviour
         //the cumulative rotation starts with the identity
         Quaternion rotation = Quaternion.identity;
         //the distance will be the minimum distance to an obstacle
-        float distance = 0;
+        float distance = Mathf.Infinity;
         for (int j = 0; j < N-1; j++) {
             // Determine the axis of rotation
             Vector3 axis = Vector3.zero;
@@ -216,7 +207,7 @@ public class Evolution : MonoBehaviour
             position += rotation * Vector3.up * segmentLength; // Move along local Y axis
             float minDistanceCurrentJoint = distanceObstaclesFromPoint(position);
             //compares to see if it is any smaller than the closest distance yet
-            distance = Mathf.Max(minDistanceCurrentJoint, distance);
+            distance = Mathf.Min(minDistanceCurrentJoint, distance);
         }
         print(distance);
         return distance;
@@ -275,7 +266,8 @@ public class Evolution : MonoBehaviour
 
     void newPopulation(){
         // Generate new population
-        if(generation % 100 == 0) {
+        mutRate = N;
+        if(variableMut == true && generation % 100 == 0) {
             mutRate = Mathf.Max((mutRate + 1) % N, 1);//the mutation keeps changing every 100 generations and it means the number of joint that are gonna be changed
         }
         for (int i = 0; i < popSize; i++){

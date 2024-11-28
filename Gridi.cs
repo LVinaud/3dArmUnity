@@ -48,19 +48,17 @@ public class Gridi : MonoBehaviour
         }
 
         // with the grid created, I will now add the layers 
-        for(int i = layers; i > 0; i--) {
+        for(int i = 1; i < layers; i++) {
             for (int x = 0; x < gridSizeX; x++)
             {
                 for (int y = 0; y < gridSizeY; y++)
                 {
                     for (int z = 0; z < gridSizeZ; z++) 
                     {
-                        if((grid[x, y, z]).layer == i + 1) {//it means it is an obstacle or the previous layer and the neighbours need to be considered
-                            List <Node> nrs = GetNeighbours(grid[x, y, z]);
+                        if((grid[x, y, z]).layer == i - 1) {//it means it is an obstacle or the previous layer and the neighbours need to be considered
+                            List <Node> nrs = GetNeighbours(grid[x, y, z], 1);
                             foreach(Node element in nrs) {
-                                if(element.layer == 0) {
-                                    element.layer = i;
-                                }
+                                element.layer = Mathf.Min(i, element.layer);
                             }
                         }
                     }
@@ -69,15 +67,47 @@ public class Gridi : MonoBehaviour
         }
     }
 
-    public List<Node> GetNeighbours(Node node)
+    public void recreateGrid(Vector3 oldPos, Vector3 newPos) {
+
+        Node oldNode = NodeFromWorldPoint(oldPos);
+        oldNode.layer = layers;
+        List<Node> oldNeighbours = GetNeighbours(oldNode, layers);
+        foreach(Node element in oldNeighbours){
+            element.layer = layers;
+        }
+        Node newNode = NodeFromWorldPoint(newPos);
+        newNode.layer = 0;
+        for(int x = -layers; x<=layers; x++)
+        {
+            for (int y = -layers; y <= layers; y++)
+            {
+                for (int z = -layers; z <= layers; z++)
+                {
+                    if (x == 0 && y == 0 && z == 0) continue;
+
+                    int checkX = newNode.gridX + x;
+                    int checkY = newNode.gridY + y;
+                    int checkZ = newNode.gridZ + z;
+
+                    if(checkX >= 0 && checkX < gridSizeX && checkY>=0 && checkY< gridSizeY && checkZ >= 0 && checkZ < gridSizeZ)
+                    {
+                        grid[checkX, checkY, checkZ].layer = Mathf.Max(Mathf.Abs(x), Mathf.Abs(y), Mathf.Abs(z));
+                    }
+                }
+            }
+        }
+
+    }
+
+    public List<Node> GetNeighbours(Node node, int depth)
     {
         List<Node> neighbours = new List<Node>();
 
-        for(int x = -1; x<=1; x++)
+        for(int x = -depth; x<=depth; x++)
         {
-            for (int y = -1; y <= 1; y++)
+            for (int y = -depth; y <= depth; y++)
             {
-                for (int z = -1; z <= 1; z++)
+                for (int z = -depth; z <= depth; z++)
                 {
                     if (x == 0 && y == 0 && z == 0) continue;
 

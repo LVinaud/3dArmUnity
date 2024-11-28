@@ -26,9 +26,9 @@ public class Node
         this.gridX = _gridX;
         this.gridY = _gridY;
         this.gridZ = _gridZ;
-        this.layer = 0;//0 means a blank node, with no layer. not to be confuded with the unity layer, this is a ndoe not a gameobject!
+        this.layer = layers;
         if (_walkable == false)
-            this.layer = layers + 1;//layers + 1 will represent an obstacle
+            this.layer = 0;
     }
 
     public int fCost

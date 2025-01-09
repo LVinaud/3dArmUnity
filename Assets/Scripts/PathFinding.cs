@@ -17,12 +17,13 @@ public class PathFinding : MonoBehaviour
     private Gridi usedGrid;
 
     //public Evolution evolutionScript;
-    private void Awake()
+    public void Awake()
     {
         EvScript = GetComponent<Evolution>();
         usedGrid = GetComponent<Gridi>();
         //if not already, makes the seeker position go to the origin
         seeker.transform.position = new Vector3(0, 0, 0);
+        pathFound = false;
         this.enabled = false;
     }
 

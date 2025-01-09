@@ -50,13 +50,14 @@ public class Evolution : MonoBehaviour
     private float previousBestfitness;
     public List<GameObject> obstaclesList = new List<GameObject>();
 
-    void Awake(){
+    public void Awake(){
         //gets the relevant infos from the createscene and pathFinding script
         N = GetComponent<CreateScene>().N;
         armParts = GetComponent<CreateScene>().armParts;
         segmentLength = GetComponent<CreateScene>().distJoints;
         astarScript = GetComponent<PathFinding>();
         gridScript = GetComponent<Gridi>();
+        generation = 1;
         //start to write into the file
         if(maxGenerations != -1) {
             sw = new Stopwatch();   
@@ -119,6 +120,19 @@ public class Evolution : MonoBehaviour
     public void addObstacle(GameObject a) {
         a.transform.hasChanged = false;
         obstaclesList.Add(a);
+    }
+
+    public void clearObstacles() {
+
+        foreach (var obj in obstaclesList)
+        {
+            if (obj != null)
+            {
+                Destroy(obj);
+            }
+        }
+
+        obstaclesList.Clear();
     }
     
     void checkObstacles() {//checks if an obstacle has moved
@@ -218,7 +232,7 @@ public class Evolution : MonoBehaviour
             //compares to see if it is any smaller than the closest distance yet
             distance = Mathf.Max(minDistanceCurrentJoint, distance);
         }
-        print(distance);
+        // print(distance);
         return distance;
     }
 
@@ -285,5 +299,22 @@ public class Evolution : MonoBehaviour
                 popStates[i][idx] = angle;
             }
         }
+    }
+
+    public float[] getUIData() {
+
+        float elapsedMilliseconds = (sw != null) ? (float)sw.ElapsedMilliseconds : -1;
+
+        return new float[]
+        {
+            elapsedMilliseconds, 
+            (float)maxGenerations, 
+            (float)N, 
+            (float)popSize, 
+            maxStep, 
+            (float)generationsPerObjective, 
+            segmentLength, 
+            distanceObstacles(robotState)
+        };
     }
 }

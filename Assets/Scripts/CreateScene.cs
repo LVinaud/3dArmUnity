@@ -68,7 +68,7 @@ public class CreateScene : MonoBehaviour
         armEnd.transform.localRotation = Quaternion.identity;
     }
 
-    void createRandomObstacles(int n) {
+    public void createRandomObstacles(int n) {
         //this will create random obstacles inside the grid sizes and add them to the evolution osbtacle list
         //for this i need to get a random x, y, z inside the real grid
         float sizeX = worldSize.x/2;

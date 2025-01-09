@@ -16,6 +16,9 @@ public class Gridi : MonoBehaviour
     public float nodeDiameter;
     private int gridSizeX, gridSizeY, gridSizeZ;
 
+    private Material gridMaterial;
+    private bool enabled = false;
+
     private void Awake()    //takes the values ​​set in unity and passes the values ​​to private variables
 
     {
@@ -24,6 +27,11 @@ public class Gridi : MonoBehaviour
         gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
         gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
         gridSizeZ = Mathf.RoundToInt(gridWorldSize.z / nodeDiameter);
+    }
+
+    private void Start()
+    {
+        gridMaterial = new Material(Shader.Find("Sprites/Default"));
     }
 
     public void createGrid()   //creation of the array that stores each cube of the collision
@@ -112,6 +120,38 @@ public class Gridi : MonoBehaviour
         
         return grid[x, y, z];
 
+    }
+
+    private void OnRenderObject()
+    {
+        if (path == null || !enabled)
+            return;
+
+        // Activate the material
+        gridMaterial.SetPass(0);
+
+        GL.Begin(GL.QUADS); // Begin drawing quads
+        foreach (Node node in path)
+        {
+
+            // Set color based on the node state
+            Color color = Color.blue;
+            GL.Color(color);
+
+            // Draw the quad for the node
+            Vector3 position = node.worldPosition;
+            float size = nodeDiameter * 0.9f;
+            GL.Vertex(position + new Vector3(-size, 0, -size)); // Bottom-left
+            GL.Vertex(position + new Vector3(size, 0, -size));  // Bottom-right
+            GL.Vertex(position + new Vector3(size, 0, size));   // Top-right
+            GL.Vertex(position + new Vector3(-size, 0, size));  // Top-left
+        }
+        GL.End(); // End drawing
+    }
+
+    public void setEnabled(bool newState){
+
+        enabled = newState;
     }
 
 }

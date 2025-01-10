@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Linq;
+using System.Collections.Generic;
 
 public class MainUIController : MonoBehaviour
 {
@@ -84,6 +85,36 @@ public class MainUIController : MonoBehaviour
         }
 
         //////////////////////////////////////////////////////////////////////////////////////
+
+        var dropdown = root.Q<DropdownField>("EvaluationTypes");
+
+        // Populate the dropdown with options
+        dropdown.choices = new List<string> {"Option 1", "Option 2", "Option 3"};
+
+        // Set the default value
+        dropdown.value = "Option 1";
+
+        // Register a callback for when the user changes the selection
+        dropdown.RegisterValueChangedCallback(evt =>
+        {
+            switch(evt.newValue){
+
+                case "Option 1":
+                    EvScript.whichFitness = 1;
+                    break;
+
+                case "Option 2":
+                    EvScript.whichFitness = 2;
+                    break;
+
+                case "Option 3":
+                    EvScript.whichFitness = 3;
+                    break;
+
+                default:
+                    break;
+            }
+        });
     }
 
     void Update()
@@ -123,9 +154,9 @@ public class MainUIController : MonoBehaviour
             case "ChangeObstacles":
 
                 EvScript.clearObstacles();
+                SceneScript.createRandomObstacles(sliderValue);
                 PathFind.Awake();
                 EvScript.Awake();
-                SceneScript.createRandomObstacles(sliderValue);
                 PathFind.activate();
                 break;
 
@@ -153,6 +184,22 @@ public class MainUIController : MonoBehaviour
             case "ShowPath":
                 isShowingPath = !isShowingPath;
                 GridScript.setEnabled(isShowingPath);
+                break;
+
+            case "ChangeNumSegments":
+                SceneScript.destroyRobotArm();
+                //EvScript.resetRobotState();
+                SceneScript.N = newValuesFromInputs[3];
+                SceneScript.createRobotArm();
+                PathFind.Awake();
+                EvScript.Awake();
+                PathFind.activate();
+                break;
+
+            case "ResetAStar":
+                PathFind.Awake();
+                EvScript.Awake();
+                PathFind.activate();
                 break;
 
             default:

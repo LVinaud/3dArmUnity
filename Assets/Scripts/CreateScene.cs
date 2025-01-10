@@ -25,11 +25,10 @@ public class CreateScene : MonoBehaviour
         Gridi = GetComponent<Gridi>();
         createRobotArm();
         createRandomObstacles(numObstacles);//creates random obstacles, this will eventually be substituted by reading gameobjects from a save file like the 2d version
-        Gridi.createGrid();
         PathFind.activate();//activates the pathfind that will eventually activate the evolution script
     }
 
-    void createRobotArm(){
+    public void createRobotArm(){
         GameObject lastArm = robotBase;
 
         for (int i = 0; i < N; i++)
@@ -68,6 +67,20 @@ public class CreateScene : MonoBehaviour
         armEnd.transform.localRotation = Quaternion.identity;
     }
 
+    public void destroyRobotArm(){
+
+        foreach(var armPart in armParts){
+
+            if (armPart != null)
+            {
+                Destroy(armPart);
+            }
+        }
+
+        Destroy(armEnd);
+        armParts.Clear();
+    }
+
     public void createRandomObstacles(int n) {
         //this will create random obstacles inside the grid sizes and add them to the evolution osbtacle list
         //for this i need to get a random x, y, z inside the real grid
@@ -81,5 +94,7 @@ public class CreateScene : MonoBehaviour
             newObstacle.AddComponent<CheckMovement>();
             EvScript.addObstacle(newObstacle);
         }
+
+        Gridi.createGrid();
     }
 }

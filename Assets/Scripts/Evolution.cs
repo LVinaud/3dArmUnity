@@ -50,6 +50,8 @@ public class Evolution : MonoBehaviour
     private float previousBestfitness;
     public List<GameObject> obstaclesList = new List<GameObject>();
 
+    public int whichFitness = 1;
+
     public void Awake(){
         //gets the relevant infos from the createscene and pathFinding script
         N = GetComponent<CreateScene>().N;
@@ -101,14 +103,28 @@ public class Evolution : MonoBehaviour
                 goal.transform.position = aux.worldPosition;
             }
         }
-        fitnessEvaluation();
+
+        switch(whichFitness){
+            case 1:
+                fitnessEvaluation1();
+                break;
+
+            case 2:
+                fitnessEvaluation2();
+                break;
+
+            case 3:
+                fitnessEvaluation3();
+                break;
+        }
+
         showArm();
         newPopulation();
         checkObstacles(); 
         //prints the generation and best fitness, i intend to make this to be written into a text file for another program to read and plot
         if(maxGenerations != -1) {
             //makes the update method stop when a certain number of generations is reached
-            logFile.WriteLine(generation + ", " + previousBestfitness);
+            logFile.WriteLine(generation + ", " + previousBestfitness + ", " + distanceObstacles(robotState));
             if(generation >= maxGenerations) {
                 //writes data to the file and closes it
                 endProgram();
@@ -155,13 +171,12 @@ public class Evolution : MonoBehaviour
         logFile.WriteLine("MaxStep: " + maxStep);
         logFile.WriteLine("Generations per objective: " + generationsPerObjective);
         logFile.WriteLine("Segment lenght: " + segmentLength);
-        logFile.WriteLine("Minimum obstacle distance: " + distanceObstacles(robotState));
         logFile.Close();
         logFile.Dispose();
         this.enabled = false;
     }
 
-    void fitnessEvaluation() {
+    void fitnessEvaluation1() {
         //the bestInd saves what is the best one in the popStates
         int bestInd = -1;
         //the distance to obstacles is now also taken into account to determine the fitness.
@@ -316,5 +331,63 @@ public class Evolution : MonoBehaviour
             segmentLength, 
             distanceObstacles(robotState)
         };
+    }
+
+    public void resetRobotState(){
+        robotState = new List<float>();
+        for(int counter=0; counter<N; counter++){
+            
+            robotState.Add(0);
+        }
+    } 
+
+    void fitnessEvaluation2() {
+        //the bestInd saves what is the best one in the popStates
+        int bestInd = -1;
+        //the distance to obstacles is now also taken into account to determine the fitness.
+        //this calculation is needed in the case of the goal moving, so that the bestFitness is recalculated, if it were a gloval variable and this wasn't done, it would save a fitness from a different goal or, in other words, another problem
+        float bestFitness = Mathf.Min(1/Vector3.Distance(simulatedArm(robotState), goal.transform.position), 10/GetComponent<CreateScene>().distJoints) - 1/Mathf.Pow(distanceObstacles(robotState), 2); //a if that doesnt require the square root to be calculated
+        //this fitness calculation takes the distance to objectivo into a max value capped when the distance is smaller than a fourth of the distJoint and tops the distance to obstacles to a max of distJoint so that it wont get any more value of getting further than a joint distance
+        for (int i = 0; i < popSize; i++){
+            // Test individual arm end position
+            Vector3 endPosition = simulatedArm(popStates[i]);
+            //calculated the fitness, or distance to the goal
+            
+            float fitness = Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 10/GetComponent<CreateScene>().distJoints) - 1/Mathf.Pow(distanceObstacles(popStates[i]), 2);
+            /*print(Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 10/GetComponent<CreateScene>().distJoints));
+            print(1/Mathf.Pow(distanceObstacles(popStates[i]), 2));*/
+            //checks if its better and saves its configuration
+            if(fitness > bestFitness){
+                bestInd = i;
+                bestFitness = fitness;
+                robotState = new List<float>(popStates[bestInd]);
+            }
+        }
+        previousBestfitness = bestFitness;
+    }
+
+    void fitnessEvaluation3() {
+        //the bestInd saves what is the best one in the popStates
+        int bestInd = -1;
+        //the distance to obstacles is now also taken into account to determine the fitness.
+        //this calculation is needed in the case of the goal moving, so that the bestFitness is recalculated, if it were a gloval variable and this wasn't done, it would save a fitness from a different goal or, in other words, another problem
+        
+        float bestFitness = Mathf.Min(1/Vector3.Distance(simulatedArm(robotState), goal.transform.position), 4/GetComponent<CreateScene>().distJoints) + Mathf.Min(GetComponent<CreateScene>().distJoints, Mathf.Sqrt(distanceObstacles(robotState)));
+        //this fitness calculation takes the distance to objectivo into a max value capped when the distance is smaller than a fourth of the distJoint and tops the distance to obstacles to a max of distJoint so that it wont get any more value of getting further than a joint distance
+        for (int i = 0; i < popSize; i++){
+            // Test individual arm end position
+            Vector3 endPosition = simulatedArm(popStates[i]);
+            //calculated the fitness, or distance to the goal
+            
+            float fitness = Mathf.Min(1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position), 4/GetComponent<CreateScene>().distJoints) + Mathf.Min(GetComponent<CreateScene>().distJoints, Mathf.Sqrt(distanceObstacles(popStates[i])));
+            //checks if its better and saves its configuration
+            
+            if(fitness > bestFitness){
+                bestInd = i;
+                bestFitness = fitness;
+                robotState = new List<float>(popStates[bestInd]);
+            }
+        }
+        previousBestfitness = bestFitness;
     }
 }

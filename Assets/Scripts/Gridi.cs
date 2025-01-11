@@ -77,6 +77,73 @@ public class Gridi : MonoBehaviour
         }
     }
 
+    private Vector3[] GetInfluenceArea(GameObject obj, float extraLength){
+
+        Vector3 centralPosition = obj.transform.position;
+        Vector3 objectSize = obj.GetComponent<Renderer>().bounds.extents;
+
+        Vector3[] edges = new Vector3[6] {
+
+            new Vector3(centralPosition.x + objectSize.x + extraLength, 0, 0),
+            new Vector3(-(centralPosition.x + objectSize.x + extraLength), 0, 0),
+            new Vector3(0, centralPosition.y + objectSize.y + extraLength, 0),
+            new Vector3(0, -(centralPosition.y + objectSize.y + extraLength), 0),
+            new Vector3(0, 0, centralPosition.z + objectSize.z + extraLength),
+            new Vector3(0, 0, -(centralPosition.z + objectSize.z + extraLength))
+        };
+
+        return edges;
+
+    }
+
+    public void RecreateGrid(GameObject obj) {
+
+        Vector3 lastPosition = obj.GetComponent<CheckMovement>().getLastPosition();
+        Node lastPositionNode = NodeFromWorldPoint(lastPosition);
+
+        for (int x = -layers; x <= layers; x++)
+        {
+            for (int y = -layers; y <= layers; y++)
+            {
+                for (int z = -layers; z <= layers; z++) 
+                {   
+                    if (x == 0 && y == 0 && z == 0) continue;
+
+                    int checkX = lastPositionNode.gridX + x;
+                    int checkY = lastPositionNode.gridY + y;
+                    int checkZ = lastPositionNode.gridZ + z;
+
+                    if(checkX >= 0 && checkX < gridSizeX && checkY>=0 && checkY< gridSizeY && checkZ >= 0 && checkZ < gridSizeZ)
+                    {
+                        grid[checkX, checkY, checkZ].layer = layers;
+                    }
+                }
+            }
+        }
+
+        Vector3 currentPosition = obj.transform.position;
+        Node currentPositionNode = NodeFromWorldPoint(currentPosition);
+
+        for (int x = -layers; x <= layers; x++)
+        {
+            for (int y = -layers; y <= layers; y++)
+            {
+                for (int z = -layers; z <= layers; z++) 
+                {   
+
+                    int checkX = currentPositionNode.gridX + x;
+                    int checkY = currentPositionNode.gridY + y;
+                    int checkZ = currentPositionNode.gridZ + z;
+
+                    if(checkX >= 0 && checkX < gridSizeX && checkY>=0 && checkY< gridSizeY && checkZ >= 0 && checkZ < gridSizeZ)
+                    {
+                        grid[checkX, checkY, checkZ].layer = Mathf.Max(Mathf.Abs(x), Mathf.Abs(y), Mathf.Abs(z));
+                    }
+                }
+            }
+        }
+    }
+
     public List<Node> GetNeighbours(Node node)
     {
         List<Node> neighbours = new List<Node>();
@@ -119,7 +186,6 @@ public class Gridi : MonoBehaviour
         int z = Mathf.RoundToInt((gridSizeZ - 1) * percentZ);
         
         return grid[x, y, z];
-
     }
 
     private void OnRenderObject()

@@ -155,6 +155,7 @@ public class Evolution : MonoBehaviour
         foreach(GameObject obstacle in obstaclesList) {
             if (obstacle.transform.hasChanged == true) {
                 if(obstacle.GetComponent<CheckMovement>().isMoving == false) {
+                    //gridScript.RecreateGrid(obstacle);
                     gridScript.createGrid();
                     obstacle.transform.hasChanged = false;
                 }
@@ -185,7 +186,7 @@ public class Evolution : MonoBehaviour
         float bestFitness;
         bool considerObstacles = false;
         if(distAux < segmentLength) {
-            bestFitness = 1/Vector3.Distance(simulatedArm(robotState), goal.transform.position) - distAux - distanceObstaclesFromPoint(simulatedArm(robotState))/10; //simplified the calculation and have unlimited both parts of the fitness calculation
+            bestFitness = 1/Vector3.Distance(simulatedArm(robotState), goal.transform.position) + distAux + distanceObstaclesFromPoint(simulatedArm(robotState))/10; //simplified the calculation and have unlimited both parts of the fitness calculation
             considerObstacles = true;
         }
         else
@@ -200,7 +201,7 @@ public class Evolution : MonoBehaviour
             if(considerObstacles){
                 float distAux2 = distanceObstacles(popStates[i]);
                 
-                fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position) - distAux2 - distanceObstaclesFromPoint(simulatedArm(popStates[i]))/10; // also considering the tip of the arm, but in a lower cost
+                fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position) + distAux2 + distanceObstaclesFromPoint(simulatedArm(popStates[i]))/10; // also considering the tip of the arm, but in a lower cost
             }
             else
                 fitness = 1/Vector3.Distance(simulatedArm(popStates[i]), goal.transform.position);
@@ -216,7 +217,8 @@ public class Evolution : MonoBehaviour
 
     float distanceObstaclesFromPoint(Vector3 point) {
         Node place = gridScript.NodeFromWorldPoint(point);
-        return place.layer * gridScript.nodeDiameter * segmentLength;
+
+        return (gridScript.layers - place.layer) * gridScript.nodeDiameter;
     }
 
     float distanceObstacles(List<float> angles) {
@@ -245,7 +247,7 @@ public class Evolution : MonoBehaviour
             position += rotation * Vector3.up * segmentLength; // Move along local Y axis
             float minDistanceCurrentJoint = distanceObstaclesFromPoint(position);
             //compares to see if it is any smaller than the closest distance yet
-            distance = Mathf.Max(minDistanceCurrentJoint, distance);
+            distance = Mathf.Min(minDistanceCurrentJoint, distance);
         }
         // print(distance);
         return distance;

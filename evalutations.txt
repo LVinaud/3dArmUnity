@@ -128,7 +128,5 @@ void fitnessEvaluation() {
         }
         previousBestfitness = bestFitness;
     }
-    
 
     
-

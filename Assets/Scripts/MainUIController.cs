@@ -17,6 +17,7 @@ public class MainUIController : MonoBehaviour
     private PathFinding PathFind;
     private Gridi GridScript;
     private FpsCounter FpsScript;
+    private ObjectSelector SelectorScript;
 
     private MoveObject cameraScript;
     private MoveObject goalScript;
@@ -24,6 +25,7 @@ public class MainUIController : MonoBehaviour
     private int sliderValue;
     private int[] newValuesFromInputs;
     private bool isShowingPath = false;
+    private GameObject clickedObject;
 
     void Start()
     {
@@ -32,11 +34,8 @@ public class MainUIController : MonoBehaviour
         PathFind = GetComponent<PathFinding>();
         GridScript = GetComponent<Gridi>();
         FpsScript = GetComponent<FpsCounter>();
-
+        SelectorScript = GetComponent<ObjectSelector>();
         cameraScript = mainCamera.GetComponent<MoveObject>();
-        goalScript = goal.GetComponent<MoveObject>();
-
-        goalScript.deactivate();
 
         // Access the root VisualElement
         root = uiDocument.rootVisualElement;
@@ -86,16 +85,14 @@ public class MainUIController : MonoBehaviour
 
         //////////////////////////////////////////////////////////////////////////////////////
 
-        var dropdown = root.Q<DropdownField>("EvaluationTypes");
-
+        var evaluationDropdown = root.Q<DropdownField>("EvaluationTypes");
         // Populate the dropdown with options
-        dropdown.choices = new List<string> {"Option 1", "Option 2", "Option 3"};
-
+        evaluationDropdown.choices = new List<string> {"Option 1", "Option 2", "Option 3"};
         // Set the default value
-        dropdown.value = "Option 1";
+        evaluationDropdown.value = "Option 1";
 
         // Register a callback for when the user changes the selection
-        dropdown.RegisterValueChangedCallback(evt =>
+        evaluationDropdown.RegisterValueChangedCallback(evt =>
         {
             switch(evt.newValue){
 
@@ -131,6 +128,41 @@ public class MainUIController : MonoBehaviour
         childrenArray[6].text = "Segment lenght: " + uiData[6];
         childrenArray[7].text = "Minimum obstacle distance: " + uiData[7];
         childrenArray[8].text = "FPS: " + FpsScript.getFPS();
+
+        HandleMovement();
+
+    }
+    
+    //Mudar nome da variável
+    private void HandleMovement(){
+
+        GameObject objectClicked = SelectorScript.getClickedObject();
+
+        if(objectClicked!= null){
+
+            cameraScript.deactivate();
+
+            if(objectClicked != clickedObject && clickedObject != null){
+
+                Destroy(clickedObject.GetComponent<MoveObject>());
+            }
+
+            clickedObject = objectClicked;
+            if(clickedObject.GetComponent<MoveObject>() == null){
+
+                clickedObject.AddComponent<MoveObject>();
+                clickedObject.GetComponent<MoveObject>().cameraTransform = mainCamera.transform;
+            }
+
+        } else {
+
+            cameraScript.activate();
+
+            if( clickedObject != null){
+
+                Destroy(clickedObject.GetComponent<MoveObject>());
+            }
+        }
     }
 
     // Generic click handler
@@ -139,7 +171,7 @@ public class MainUIController : MonoBehaviour
 
         switch (buttonName)
         {
-            case "MoveCamera":
+            /*case "MoveCamera":
                 
                 cameraScript.activate();
                 goalScript.deactivate();
@@ -149,7 +181,7 @@ public class MainUIController : MonoBehaviour
                 
                 cameraScript.deactivate();
                 goalScript.activate();
-                break;
+                break;*/
 
             case "ChangeObstacles":
 

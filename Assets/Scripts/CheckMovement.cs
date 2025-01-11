@@ -25,4 +25,9 @@ public class CheckMovement : MonoBehaviour
         }
         lastPosition = transform.position;
     }
+
+    public Vector3 getLastPosition(){
+
+        return lastPosition;
+    }
 }

@@ -77,45 +77,80 @@ public class Gridi : MonoBehaviour
         }
     }
 
-    private Vector3[] GetInfluenceArea(GameObject obj, float extraLength){
+    private Vector3 GetInfluenceArea(GameObject obj, float extraLength){
 
-        Vector3 centralPosition = obj.transform.position;
         Vector3 objectSize = obj.GetComponent<Renderer>().bounds.extents;
 
-        Vector3[] edges = new Vector3[6] {
+        int localSizeX = Mathf.RoundToInt((objectSize.x*2 + extraLength)/nodeDiameter);
+        int localSizeY = Mathf.RoundToInt((objectSize.y*2 + extraLength)/nodeDiameter);
+        int localSizeZ = Mathf.RoundToInt((objectSize.z*2 + extraLength)/nodeDiameter);
 
-            new Vector3(centralPosition.x + objectSize.x + extraLength, 0, 0),
-            new Vector3(-(centralPosition.x + objectSize.x + extraLength), 0, 0),
-            new Vector3(0, centralPosition.y + objectSize.y + extraLength, 0),
-            new Vector3(0, -(centralPosition.y + objectSize.y + extraLength), 0),
-            new Vector3(0, 0, centralPosition.z + objectSize.z + extraLength),
-            new Vector3(0, 0, -(centralPosition.z + objectSize.z + extraLength))
-        };
-
-        return edges;
-
+        return new Vector3(
+            localSizeX,
+            localSizeY,
+            localSizeZ
+        );
     }
 
+
+    //Isnt working
     public void RecreateGrid(GameObject obj) {
+
+        Vector3 influenceArea = GetInfluenceArea(obj, 0.0f);
+        Vector3 objectSize = obj.GetComponent<Renderer>().bounds.extents;
 
         Vector3 lastPosition = obj.GetComponent<CheckMovement>().getLastPosition();
         Node lastPositionNode = NodeFromWorldPoint(lastPosition);
 
-        for (int x = -layers; x <= layers; x++)
+        int[] auxX = new int[2]{
+            Mathf.RoundToInt(lastPositionNode.gridX - influenceArea.x/2),
+            Mathf.RoundToInt(lastPositionNode.gridX + influenceArea.x/2)
+        };
+
+        int[] auxY = new int[2]{
+            Mathf.RoundToInt(lastPositionNode.gridY - influenceArea.y/2),
+            Mathf.RoundToInt(lastPositionNode.gridY + influenceArea.y/2)
+        };
+
+        int[] auxZ = new int[2]{
+            Mathf.RoundToInt(lastPositionNode.gridZ - influenceArea.z/2),
+            Mathf.RoundToInt(lastPositionNode.gridZ + influenceArea.z/2)
+        };
+
+        Vector3 lastAreaBottomLeft = lastPosition - Vector3.right * objectSize.x / 2 - Vector3.forward * objectSize.z / 2 - Vector3.up * objectSize.y / 2;
+
+        for (int x = auxX[0]; x < auxX[1]; x++)
         {
-            for (int y = -layers; y <= layers; y++)
+            for (int y = auxY[0]; y < auxY[1]; y++)
             {
-                for (int z = -layers; z <= layers; z++) 
+                for (int z = auxZ[0]; z < auxZ[1]; z++) 
                 {   
-                    if (x == 0 && y == 0 && z == 0) continue;
+                    if(x >= 0 && x < gridSizeX && y >= 0 && y < gridSizeY && z >= 0 && z < gridSizeZ){
+                        Vector3 worldPoint = lastAreaBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (z * nodeDiameter + nodeRadius) + Vector3.up * (y * nodeDiameter + nodeRadius);
+                        bool walkable = !(Physics.CheckSphere(worldPoint, nodeRadius, unwalkableMask));
+                        grid[x, y, z] = new Node(walkable, worldPoint, x, y, z, layers);
+                    }
+                }
+            }
+        }
 
-                    int checkX = lastPositionNode.gridX + x;
-                    int checkY = lastPositionNode.gridY + y;
-                    int checkZ = lastPositionNode.gridZ + z;
-
-                    if(checkX >= 0 && checkX < gridSizeX && checkY>=0 && checkY< gridSizeY && checkZ >= 0 && checkZ < gridSizeZ)
+        for(int i = layers; i > 0; i--) {
+            for (int x = auxX[0]; x < auxX[1]; x++)
+            {
+                for (int y = auxY[0]; y < auxY[1]; y++)
+                {
+                    for (int z = auxZ[0]; z < auxZ[1]; z++) 
                     {
-                        grid[checkX, checkY, checkZ].layer = layers;
+                        if(x >= 0 && x < gridSizeX && y >= 0 && y < gridSizeY && z >= 0 && z < gridSizeZ){
+                            if((grid[x, y, z]).layer == i + 1) {//it means it is an obstacle or the previous layer and the neighbours need to be considered
+                                List <Node> nrs = GetNeighbours(grid[x, y, z]);
+                                foreach(Node element in nrs) {
+                                    if(element.layer == 0) {
+                                        element.layer = i;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -124,20 +159,55 @@ public class Gridi : MonoBehaviour
         Vector3 currentPosition = obj.transform.position;
         Node currentPositionNode = NodeFromWorldPoint(currentPosition);
 
-        for (int x = -layers; x <= layers; x++)
+        auxX = new int[2]{
+            Mathf.RoundToInt(currentPositionNode.gridX - influenceArea.x/2),
+            Mathf.RoundToInt(currentPositionNode.gridX + influenceArea.x/2)
+        };
+
+        auxY = new int[2]{
+            Mathf.RoundToInt(currentPositionNode.gridY - influenceArea.y/2),
+            Mathf.RoundToInt(currentPositionNode.gridY + influenceArea.y/2)
+        };
+
+        auxZ = new int[2]{
+            Mathf.RoundToInt(currentPositionNode.gridZ - influenceArea.z/2),
+            Mathf.RoundToInt(currentPositionNode.gridZ + influenceArea.z/2)
+        };
+
+        Vector3 currentAreaBottomLeft = currentPosition - Vector3.right * objectSize.x / 2 - Vector3.forward * objectSize.z / 2 - Vector3.up * objectSize.y / 2;
+
+        for (int x = auxX[0]; x < auxX[1]; x++)
         {
-            for (int y = -layers; y <= layers; y++)
+            for (int y = auxY[0]; y < auxY[1]; y++)
             {
-                for (int z = -layers; z <= layers; z++) 
+                for (int z = auxZ[0]; z < auxZ[1]; z++) 
                 {   
+                    if(x >= 0 && x < gridSizeX && y >= 0 && y < gridSizeY && z >= 0 && z < gridSizeZ){
+                        Vector3 worldPoint = currentAreaBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (z * nodeDiameter + nodeRadius) + Vector3.up * (y * nodeDiameter + nodeRadius);
+                        bool walkable = !(Physics.CheckSphere(worldPoint, nodeRadius, unwalkableMask));
+                        grid[x, y, z] = new Node(walkable, worldPoint, x, y, z, layers);
+                    }
+                }
+            }
+        }
 
-                    int checkX = currentPositionNode.gridX + x;
-                    int checkY = currentPositionNode.gridY + y;
-                    int checkZ = currentPositionNode.gridZ + z;
-
-                    if(checkX >= 0 && checkX < gridSizeX && checkY>=0 && checkY< gridSizeY && checkZ >= 0 && checkZ < gridSizeZ)
+        for(int i = layers; i > 0; i--) {
+            for (int x = auxX[0]; x < auxX[1]; x++)
+            {
+                for (int y = auxY[0]; y < auxY[1]; y++)
+                {
+                    for (int z = auxZ[0]; z < auxZ[1]; z++) 
                     {
-                        grid[checkX, checkY, checkZ].layer = Mathf.Max(Mathf.Abs(x), Mathf.Abs(y), Mathf.Abs(z));
+                        if(x >= 0 && x < gridSizeX && y >= 0 && y < gridSizeY && z >= 0 && z < gridSizeZ){
+                            if((grid[x, y, z]).layer == i + 1) {//it means it is an obstacle or the previous layer and the neighbours need to be considered
+                                List <Node> nrs = GetNeighbours(grid[x, y, z]);
+                                foreach(Node element in nrs) {
+                                    if(element.layer == 0) {
+                                        element.layer = i;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -772,7 +772,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   nodeRadius: 0.01
-  layers: 10
+  layers: 20
   nodeDiameter: 0
 --- !u!114 &1082612866
 MonoBehaviour:
@@ -803,6 +803,7 @@ MonoBehaviour:
   uiDocument: {fileID: 1681528443}
   mainCamera: {fileID: 534669902}
   goal: {fileID: 1278722979}
+  isCollectingData: 0
 --- !u!114 &1082612868
 MonoBehaviour:
   m_ObjectHideFlags: 0

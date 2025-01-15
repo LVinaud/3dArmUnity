@@ -19,6 +19,11 @@ public class CheckMovement : MonoBehaviour
     void Update()
     {
         if(transform.position != lastPosition) {
+
+            if(!isMoving){
+                lastInstance = lastPosition;
+            }
+
             isMoving = true;
         } else {
             isMoving = false;
@@ -28,6 +33,6 @@ public class CheckMovement : MonoBehaviour
 
     public Vector3 getLastPosition(){
 
-        return lastPosition;
+        return lastInstance;
     }
 }

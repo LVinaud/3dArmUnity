@@ -18,7 +18,6 @@ public class MainUIController : MonoBehaviour
     private Gridi GridScript;
     private FpsCounter FpsScript;
     private ObjectSelector SelectorScript;
-
     private MoveObject cameraScript;
     private MoveObject goalScript;
 
@@ -26,6 +25,9 @@ public class MainUIController : MonoBehaviour
     private int[] newValuesFromInputs;
     private bool isShowingPath = false;
     private GameObject clickedObject;
+
+    public bool isCollectingData = false;
+    private int simulationCounter = 0;
 
     void Start()
     {
@@ -127,7 +129,9 @@ public class MainUIController : MonoBehaviour
         childrenArray[5].text = "Generations per objective: " + uiData[5];
         childrenArray[6].text = "Segment lenght: " + uiData[6];
         childrenArray[7].text = "Minimum obstacle distance: " + uiData[7];
-        childrenArray[8].text = "FPS: " + FpsScript.getFPS();
+        childrenArray[8].text = "Simulation Counter: " + simulationCounter;
+        childrenArray[9].text = "Fitness Type: " + EvScript.whichFitness;
+        childrenArray[10].text = "FPS: " + FpsScript.getFPS();
 
         HandleMovement();
 
@@ -187,30 +191,22 @@ public class MainUIController : MonoBehaviour
 
                 EvScript.clearObstacles();
                 SceneScript.createRandomObstacles(sliderValue);
-                PathFind.Awake();
-                EvScript.Awake();
-                PathFind.activate();
+                resetSimulation();
                 break;
 
             case "ChangeGeneration":
                 EvScript.maxGenerations = newValuesFromInputs[0];
-                PathFind.Awake();
-                EvScript.Awake();
-                PathFind.activate();
+                resetSimulation();
                 break;
 
             case "ChangePopulation":
                 EvScript.popSize = newValuesFromInputs[1];
-                PathFind.Awake();
-                EvScript.Awake();
-                PathFind.activate();
+                resetSimulation();
                 break;
 
             case "ChangeMaxStep":
                 EvScript.maxStep = newValuesFromInputs[2];
-                PathFind.Awake();
-                EvScript.Awake();
-                PathFind.activate();
+                resetSimulation();
                 break;
 
             case "ShowPath":
@@ -223,20 +219,45 @@ public class MainUIController : MonoBehaviour
                 //EvScript.resetRobotState();
                 SceneScript.N = newValuesFromInputs[3];
                 SceneScript.createRobotArm();
-                PathFind.Awake();
-                EvScript.Awake();
-                PathFind.activate();
+                resetSimulation();
                 break;
 
             case "ResetAStar":
-                PathFind.Awake();
-                EvScript.Awake();
-                PathFind.activate();
+                resetSimulation();
+                break;
+
+            case "CollectData":
+                EvScript.maxGenerations = 2300;
+                simulationCounter = 0;
+                isCollectingData = true;
+                resetSimulation();
                 break;
 
             default:
                 Debug.Log("Unknown button clicked");
                 break;
+        }
+    }
+
+    public void resetSimulation() {
+
+        PathFind.Awake();
+        EvScript.Awake();
+        PathFind.activate();
+    }
+
+    public int getSimulationCounter(){
+
+        return simulationCounter;
+    }
+
+    public void setSimulationCounter(int n){
+
+        if(n == -1){
+            simulationCounter += 1;
+        }
+        else {
+            simulationCounter = n;
         }
     }
 }

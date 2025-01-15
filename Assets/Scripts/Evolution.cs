@@ -52,6 +52,11 @@ public class Evolution : MonoBehaviour
 
     public int whichFitness = 1;
 
+    private MainUIController UIScript;
+    private float[] totalSumDistanceDestination = new float[2300];
+    private float[] totalSumDistanceObstacle = new float[2300];
+    private Transform finalPosition;
+
     public void Awake(){
         //gets the relevant infos from the createscene and pathFinding script
         N = GetComponent<CreateScene>().N;
@@ -59,9 +64,10 @@ public class Evolution : MonoBehaviour
         segmentLength = GetComponent<CreateScene>().distJoints;
         astarScript = GetComponent<PathFinding>();
         gridScript = GetComponent<Gridi>();
+        UIScript = GetComponent<MainUIController>();
         generation = 1;
         //start to write into the file
-        if(maxGenerations != -1) {
+        if(maxGenerations != -1 && sw == null) {
             sw = new Stopwatch();   
             logFile = new StreamWriter(fileName, false);
         }
@@ -84,6 +90,7 @@ public class Evolution : MonoBehaviour
     //activates the Update method allowing it to happen, used by the PathFinding script to start the evolution script
     public void activate() {
         this.enabled = true;
+        finalPosition = goal.transform;
         //gets the path found by the a* algorithm and enqueue them into the queue
         pathQueue = new Queue<Node>();
         List<Node> aux = astarScript.answerPath();
@@ -118,16 +125,51 @@ public class Evolution : MonoBehaviour
                 break;
         }
 
+        if(UIScript.isCollectingData){
+            totalSumDistanceDestination[generation-1] += Vector3.Distance(finalPosition.position, simulatedArm(robotState));
+            totalSumDistanceObstacle[generation-1] += distanceObstacles(robotState);
+        }
+
         showArm();
         newPopulation();
         checkObstacles(); 
         //prints the generation and best fitness, i intend to make this to be written into a text file for another program to read and plot
         if(maxGenerations != -1) {
             //makes the update method stop when a certain number of generations is reached
-            logFile.WriteLine(generation + ", " + previousBestfitness + ", " + distanceObstacles(robotState));
+            //logFile.WriteLine(generation + ", " + previousBestfitness + ", " + distanceObstacles(robotState));
             if(generation >= maxGenerations) {
                 //writes data to the file and closes it
-                endProgram();
+                //endProgram();
+                if(UIScript.isCollectingData && UIScript.getSimulationCounter() < 49){
+
+                    this.enabled = false;
+                    UIScript.setSimulationCounter(-1);
+                    UIScript.resetSimulation();
+
+                } else{
+
+                    for(int counter=0; counter<2300; counter++){
+
+                        totalSumDistanceDestination[counter] /= 50;
+                        totalSumDistanceObstacle[counter] /= 50;
+
+                        logFile.WriteLine(totalSumDistanceDestination[counter] + ". " + totalSumDistanceObstacle[counter] + ". " + counter + ". " + whichFitness);
+                    }
+                    logFile.WriteLine("------------------------------------------------");
+                    logFile.Flush();
+
+                    totalSumDistanceDestination = new float[2300];
+                    totalSumDistanceObstacle = new float[2300];
+                    whichFitness +=1;
+
+                    if (whichFitness>3){
+                        endProgram();
+                    }
+
+                    UIScript.setSimulationCounter(0);
+                    this.enabled = false;
+                    UIScript.resetSimulation();
+                }
             }
         }
         generation++;
@@ -165,6 +207,7 @@ public class Evolution : MonoBehaviour
 
     void endProgram() {
         sw.Stop();
+        logFile.WriteLine("/------------------------------------------------/");
         logFile.WriteLine("Time elapsed(ms): " + sw.ElapsedMilliseconds);
         logFile.WriteLine("Generations: " + maxGenerations);
         logFile.WriteLine("Number of joints: " + N);
@@ -172,8 +215,8 @@ public class Evolution : MonoBehaviour
         logFile.WriteLine("MaxStep: " + maxStep);
         logFile.WriteLine("Generations per objective: " + generationsPerObjective);
         logFile.WriteLine("Segment lenght: " + segmentLength);
-        logFile.Close();
         logFile.Dispose();
+        Application.Quit();
         this.enabled = false;
     }
 
@@ -228,7 +271,7 @@ public class Evolution : MonoBehaviour
         //the cumulative rotation starts with the identity
         Quaternion rotation = Quaternion.identity;
         //the distance will be the minimum distance to an obstacle
-        float distance = 0;
+        float distance = 999999;
         for (int j = 0; j < N-1; j++) {
             // Determine the axis of rotation
             Vector3 axis = Vector3.zero;
@@ -334,14 +377,6 @@ public class Evolution : MonoBehaviour
             distanceObstacles(robotState)
         };
     }
-
-    public void resetRobotState(){
-        robotState = new List<float>();
-        for(int counter=0; counter<N; counter++){
-            
-            robotState.Add(0);
-        }
-    } 
 
     void fitnessEvaluation2() {
         //the bestInd saves what is the best one in the popStates
